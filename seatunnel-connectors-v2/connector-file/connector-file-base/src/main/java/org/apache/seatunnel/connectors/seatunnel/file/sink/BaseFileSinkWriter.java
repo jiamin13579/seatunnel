@@ -71,7 +71,8 @@ public class BaseFileSinkWriter
                 List<String> transactions =
                         findTransactionList(jobId, uuidPrefix, hadoopFileSystemProxy);
                 FileSinkAggregatedCommitter fileSinkAggregatedCommitter =
-                        new FileSinkAggregatedCommitter(hadoopConf);
+                        new FileSinkAggregatedCommitter(
+                                hadoopConf, writeStrategy.getFileSinkConfig());
                 fileSinkAggregatedCommitter.init();
                 LinkedHashMap<String, FileSinkState> fileStatesMap = new LinkedHashMap<>();
                 fileSinkStates.forEach(

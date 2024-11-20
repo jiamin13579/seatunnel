@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.seatunnel.connectors.seatunnel.file.sink.config;
+package org.apache.seatunnel.connectors.seatunnel.file.config;
 
 import lombok.NonNull;
 

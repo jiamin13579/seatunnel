@@ -33,6 +33,7 @@ import java.io.Serializable;
 import java.util.Locale;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.seatunnel.connectors.seatunnel.file.config.BaseSinkConfig.SAVE_MODE;
 
 @Data
 public class BaseFileSinkConfig implements DelimiterConfig, Serializable {
@@ -42,6 +43,7 @@ public class BaseFileSinkConfig implements DelimiterConfig, Serializable {
     protected String rowDelimiter = BaseSinkConfig.ROW_DELIMITER.defaultValue();
     protected int batchSize = BaseSinkConfig.BATCH_SIZE.defaultValue();
     protected String path;
+    protected SaveMode saveMode = SAVE_MODE.defaultValue();
     protected String fileNameExpression = BaseSinkConfig.FILE_NAME_EXPRESSION.defaultValue();
     protected FileFormat fileFormat = FileFormat.TEXT;
     protected DateUtils.Formatter dateFormat = DateUtils.Formatter.YYYY_MM_DD;
@@ -74,6 +76,10 @@ public class BaseFileSinkConfig implements DelimiterConfig, Serializable {
 
         if (path.equals(File.separator)) {
             this.path = "";
+        }
+
+        if (config.hasPath(SAVE_MODE.key())) {
+            this.saveMode = SaveMode.fromStr(config.getString(SAVE_MODE.key()));
         }
 
         if (config.hasPath(BaseSinkConfig.FILE_NAME_EXPRESSION.key())

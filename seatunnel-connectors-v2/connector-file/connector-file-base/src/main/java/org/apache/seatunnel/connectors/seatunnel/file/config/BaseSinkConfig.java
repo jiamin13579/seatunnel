@@ -121,6 +121,14 @@ public class BaseSinkConfig extends KerberosConfig {
                     .noDefaultValue()
                     .withDescription("The file path of target files");
 
+    public static final Option<SaveMode> SAVE_MODE =
+            Options.key("save_mode")
+                    .singleChoice(
+                            SaveMode.class, Arrays.asList(SaveMode.APPEND, SaveMode.OVERWRITE))
+                    .defaultValue(SaveMode.APPEND)
+                    .withDescription(
+                            "Append adds the new data to the existing data. Overwrite replaces the existing data with the new data.");
+
     public static final Option<String> FIELD_DELIMITER =
             Options.key("field_delimiter")
                     .stringType()

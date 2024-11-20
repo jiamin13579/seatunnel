@@ -170,7 +170,8 @@ public class HiveSink
                         readonlyConfig,
                         getTableInformation().getDbName(),
                         getTableInformation().getTableName(),
-                        hadoopConf));
+                        hadoopConf,
+                        fileSinkConfig));
     }
 
     @Override

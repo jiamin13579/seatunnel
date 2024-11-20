@@ -19,7 +19,11 @@ package org.apache.seatunnel.connectors.seatunnel.file.sink.commit;
 
 import org.apache.seatunnel.api.sink.SinkAggregatedCommitter;
 import org.apache.seatunnel.connectors.seatunnel.file.config.HadoopConf;
+import org.apache.seatunnel.connectors.seatunnel.file.config.SaveMode;
 import org.apache.seatunnel.connectors.seatunnel.file.hadoop.HadoopFileSystemProxy;
+import org.apache.seatunnel.connectors.seatunnel.file.sink.config.FileSinkConfig;
+
+import org.apache.hadoop.fs.FileStatus;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -33,9 +37,43 @@ import java.util.Map;
 public class FileSinkAggregatedCommitter
         implements SinkAggregatedCommitter<FileCommitInfo, FileAggregatedCommitInfo> {
     protected HadoopFileSystemProxy hadoopFileSystemProxy;
+    protected FileSinkConfig sinkConfig;
+    protected SaveMode saveMode;
+
+    public FileSinkAggregatedCommitter(HadoopConf hadoopConf, FileSinkConfig sinkConfig) {
+        this.hadoopFileSystemProxy = new HadoopFileSystemProxy(hadoopConf);
+        this.sinkConfig = sinkConfig;
+        this.saveMode = sinkConfig.getSaveMode();
+    }
 
     public FileSinkAggregatedCommitter(HadoopConf hadoopConf) {
         this.hadoopFileSystemProxy = new HadoopFileSystemProxy(hadoopConf);
+        this.saveMode = SaveMode.APPEND;
+    }
+
+    private void handleOverwrite(FileAggregatedCommitInfo aggregatedCommitInfo) throws IOException {
+        if (saveMode == SaveMode.OVERWRITE) {
+            if (sinkConfig.getPartitionFieldList().isEmpty()) {
+                // delete the target list file, delete file one by one
+                FileStatus[] fileStatuses = hadoopFileSystemProxy.listStatus(sinkConfig.getPath());
+                for (FileStatus fileStatus : fileStatuses) {
+                    if (fileStatus.isFile()) {
+                        log.info("overwrite mode, delete file: {}", fileStatus.getPath());
+                        hadoopFileSystemProxy.deleteFile(fileStatus.getPath().toString());
+                    }
+                }
+            } else {
+                // delete the target partition dir
+                for (String partitionKey :
+                        aggregatedCommitInfo.getPartitionDirAndValuesMap().keySet()) {
+                    String partitionDirPath = sinkConfig.getPath() + "/" + partitionKey;
+                    if (hadoopFileSystemProxy.fileExist(partitionDirPath)) {
+                        log.info("overwrite mode, delete partition dir: {}", partitionDirPath);
+                        hadoopFileSystemProxy.deleteFile(partitionDirPath);
+                    }
+                }
+            }
+        }
     }
 
     @Override
@@ -45,6 +83,8 @@ public class FileSinkAggregatedCommitter
         aggregatedCommitInfos.forEach(
                 aggregatedCommitInfo -> {
                     try {
+                        this.handleOverwrite(aggregatedCommitInfo);
+
                         for (Map.Entry<String, LinkedHashMap<String, String>> entry :
                                 aggregatedCommitInfo.getTransactionMap().entrySet()) {
                             for (Map.Entry<String, String> mvFileEntry :
@@ -106,6 +146,10 @@ public class FileSinkAggregatedCommitter
     public void abort(List<FileAggregatedCommitInfo> aggregatedCommitInfos) throws Exception {
         log.info("rollback aggregate commit");
         if (aggregatedCommitInfos == null || aggregatedCommitInfos.size() == 0) {
+            return;
+        }
+        if (saveMode == SaveMode.OVERWRITE) {
+            log.warn("overwrite mode, no need to rollback");
             return;
         }
         aggregatedCommitInfos.forEach(

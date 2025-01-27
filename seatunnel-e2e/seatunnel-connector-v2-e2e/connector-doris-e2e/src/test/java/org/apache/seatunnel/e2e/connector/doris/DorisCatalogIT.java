@@ -66,7 +66,7 @@ public class DorisCatalogIT extends AbstractDorisIT {
         TableSchema.Builder builder = TableSchema.builder();
         builder.column(PhysicalColumn.of("k1", BasicType.INT_TYPE, 10, false, 0, "k1"));
         builder.column(PhysicalColumn.of("k2", BasicType.STRING_TYPE, 64, false, "", "k2"));
-        builder.column(PhysicalColumn.of("v1", BasicType.DOUBLE_TYPE, 10, true, null, "v1"));
+        builder.column(PhysicalColumn.of("v1", BasicType.DOUBLE_TYPE, 10, true, null, "v1-'v1'"));
         builder.column(PhysicalColumn.of("v2", new DecimalType(10, 2), 0, false, 0.1, "v2"));
         builder.primaryKey(PrimaryKey.of("pk", Arrays.asList("k1", "k2")));
         catalogTable =
@@ -75,7 +75,7 @@ public class DorisCatalogIT extends AbstractDorisIT {
                         builder.build(),
                         Collections.emptyMap(),
                         Collections.emptyList(),
-                        "test");
+                        "test - \\ 'test'");
     }
 
     private DorisCatalogFactory factory;
@@ -229,10 +229,26 @@ public class DorisCatalogIT extends AbstractDorisIT {
                                 put(DorisSinkOptions.NEEDS_UNSUPPORTED_TYPE_CASTING.key(), true);
                             }
                         });
-        upstreamTable
-                .getTableSchema()
-                .getColumns()
-                .add(PhysicalColumn.of("v3", new DecimalType(66, 22), 66, false, null, "v3"));
+
+        upstreamTable =
+                CatalogTable.of(
+                        upstreamTable.getTableId(),
+                        TableSchema.builder()
+                                .columns(upstreamTable.getTableSchema().getColumns())
+                                .column(
+                                        PhysicalColumn.of(
+                                                "v3",
+                                                new DecimalType(66, 22),
+                                                66,
+                                                false,
+                                                null,
+                                                "v3"))
+                                .primaryKey(upstreamTable.getTableSchema().getPrimaryKey())
+                                .constraintKey(upstreamTable.getTableSchema().getConstraintKeys())
+                                .build(),
+                        upstreamTable.getOptions(),
+                        upstreamTable.getPartitionKeys(),
+                        upstreamTable.getComment());
         CatalogTable newTable = assertCreateTable(upstreamTable, config5, "test4.test4");
         Assertions.assertEquals(
                 BasicType.DOUBLE_TYPE, newTable.getTableSchema().getColumns().get(4).getDataType());

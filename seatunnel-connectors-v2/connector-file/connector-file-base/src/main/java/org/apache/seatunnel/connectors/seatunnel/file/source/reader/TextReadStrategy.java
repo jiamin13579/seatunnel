@@ -36,7 +36,6 @@ import org.apache.seatunnel.connectors.seatunnel.file.exception.FileConnectorErr
 import org.apache.seatunnel.connectors.seatunnel.file.exception.FileConnectorException;
 import org.apache.seatunnel.format.text.TextDeserializationSchema;
 import org.apache.seatunnel.format.text.constant.TextFormatConstant;
-import org.apache.seatunnel.format.text.splitor.CsvLineSplitor;
 import org.apache.seatunnel.format.text.splitor.DefaultTextLineSplitor;
 import org.apache.seatunnel.format.text.splitor.TextLineSplitor;
 
@@ -154,13 +153,18 @@ public class TextReadStrategy extends AbstractReadStrategy {
         if (pluginConfig.hasPath(BaseSourceConfigOptions.READ_COLUMNS.key())) {
             throw new FileConnectorException(
                     SeaTunnelAPIErrorCode.CONFIG_VALIDATION_FAILED,
-                    "When reading json/text/csv files, if user has not specified schema information, "
+                    "When reading text files, if user has not specified schema information, "
                             + "SeaTunnel will not support column projection");
         }
+        ReadonlyConfig readonlyConfig = ReadonlyConfig.fromConfig(pluginConfig);
         TextDeserializationSchema.Builder builder =
                 TextDeserializationSchema.builder()
                         .delimiter(TextFormatConstant.PLACEHOLDER)
-                        .textLineSplitor(textLineSplitor);
+                        .textLineSplitor(textLineSplitor)
+                        .nullFormat(
+                                readonlyConfig
+                                        .getOptional(BaseSourceConfigOptions.NULL_FORMAT)
+                                        .orElse(null));
         if (isMergePartition) {
             deserializationSchema =
                     builder.seaTunnelRowType(this.seaTunnelRowTypeWithPartition).build();
@@ -175,30 +179,23 @@ public class TextReadStrategy extends AbstractReadStrategy {
         SeaTunnelRowType rowType = catalogTable.getSeaTunnelRowType();
         SeaTunnelRowType userDefinedRowTypeWithPartition =
                 mergePartitionTypes(fileNames.get(0), rowType);
+        ReadonlyConfig readonlyConfig = ReadonlyConfig.fromConfig(pluginConfig);
         Optional<String> fieldDelimiterOptional =
-                ReadonlyConfig.fromConfig(pluginConfig)
-                        .getOptional(BaseSourceConfigOptions.FIELD_DELIMITER);
+                readonlyConfig.getOptional(BaseSourceConfigOptions.FIELD_DELIMITER);
         encoding =
-                ReadonlyConfig.fromConfig(pluginConfig)
+                readonlyConfig
                         .getOptional(BaseSourceConfigOptions.ENCODING)
                         .orElse(StandardCharsets.UTF_8.name());
-        if (fieldDelimiterOptional.isPresent()) {
-            fieldDelimiter = fieldDelimiterOptional.get();
-        } else {
-            FileFormat fileFormat =
-                    FileFormat.valueOf(
-                            pluginConfig
-                                    .getString(BaseSourceConfigOptions.FILE_FORMAT_TYPE.key())
-                                    .toUpperCase());
-            if (fileFormat == FileFormat.CSV) {
-                fieldDelimiter = ",";
-            }
-        }
+        fieldDelimiterOptional.ifPresent(s -> fieldDelimiter = s);
         initFormatter();
         TextDeserializationSchema.Builder builder =
                 TextDeserializationSchema.builder()
                         .delimiter(fieldDelimiter)
-                        .textLineSplitor(textLineSplitor);
+                        .textLineSplitor(textLineSplitor)
+                        .nullFormat(
+                                readonlyConfig
+                                        .getOptional(BaseSourceConfigOptions.NULL_FORMAT)
+                                        .orElse(null));
         if (isMergePartition) {
             deserializationSchema =
                     builder.seaTunnelRowType(userDefinedRowTypeWithPartition).build();
@@ -246,14 +243,6 @@ public class TextReadStrategy extends AbstractReadStrategy {
                     pluginConfig.getString(BaseSourceConfigOptions.COMPRESS_CODEC.key());
             compressFormat = CompressFormat.valueOf(compressCodec.toUpperCase());
         }
-        if (FileFormat.CSV.equals(
-                FileFormat.valueOf(
-                        pluginConfig
-                                .getString(BaseSourceConfigOptions.FILE_FORMAT_TYPE.key())
-                                .toUpperCase()))) {
-            textLineSplitor = new CsvLineSplitor();
-        } else {
-            textLineSplitor = new DefaultTextLineSplitor();
-        }
+        textLineSplitor = new DefaultTextLineSplitor();
     }
 }

@@ -17,10 +17,12 @@
 
 package org.apache.seatunnel.plugin.discovery.seatunnel;
 
+import org.apache.seatunnel.shade.com.google.common.collect.Lists;
+
+import org.apache.seatunnel.api.common.PluginIdentifier;
 import org.apache.seatunnel.common.config.Common;
 import org.apache.seatunnel.common.config.DeployMode;
 import org.apache.seatunnel.common.constants.PluginType;
-import org.apache.seatunnel.plugin.discovery.PluginIdentifier;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
@@ -28,8 +30,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
-
-import com.google.common.collect.Lists;
 
 import java.io.IOException;
 import java.net.URL;

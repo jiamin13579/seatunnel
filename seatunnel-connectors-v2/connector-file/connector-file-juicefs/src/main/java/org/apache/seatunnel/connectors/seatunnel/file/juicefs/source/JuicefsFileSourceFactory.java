@@ -52,7 +52,7 @@ public class JuicefsFileSourceFactory implements TableSourceFactory {
     @Override
     public OptionRule optionRule() {
         return OptionRule.builder()
-                .optional(BaseSourceConfigOptions.TABLE_CONFIGS)
+                .optional(TableSchemaOptions.TABLE_CONFIGS)
                 .required(JuicefsConfigOptions.FILE_PATH)
                 .required(JuicefsConfigOptions.JFS_NAME)
                 .required(JuicefsConfigOptions.META_URL)
